@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/patch-vite.cjs",
     "dev": "vite",
+    "prebuild": "node scripts/patch-vite.cjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/patch-vite.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.475.0",
