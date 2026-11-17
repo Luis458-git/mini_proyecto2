@@ -370,6 +370,7 @@ if (require.main === module) {
 
 module.exports = {
   ejecutarIngesta,
+  ejecutarIngestaCompleta: ejecutarIngesta,
   hasValidCredentials,
   METADATA_MAP,
   chunkDocumentText,

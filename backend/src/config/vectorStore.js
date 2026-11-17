@@ -124,7 +124,16 @@ let chromaClient = null;
 
 function getChromaClient() {
   if (!chromaClient) {
-    chromaClient = new ChromaClient({ path: CHROMA_URL });
+    try {
+      const parsed = new URL(CHROMA_URL);
+      chromaClient = new ChromaClient({
+        host: parsed.hostname || 'localhost',
+        port: Number(parsed.port || 8000),
+        ssl: parsed.protocol === 'https:',
+      });
+    } catch {
+      chromaClient = new ChromaClient({ host: 'localhost', port: 8000, ssl: false });
+    }
   }
   return chromaClient;
 }
@@ -187,7 +196,10 @@ async function addDocuments({ ids, documents, metadatas, embeddings }) {
 async function queryVectorStore(queryText, nResults = 5) {
   try {
     const client = getChromaClient();
-    const collection = await client.getOrCreateCollection({ name: COLLECTION_NAME });
+    const collection = await client.getOrCreateCollection({
+      name: COLLECTION_NAME,
+      embeddingFunction: customEmbeddingFunction,
+    });
     const qVec = generateLocalEmbedding(queryText);
     return await collection.query({
       queryEmbeddings: [qVec],
@@ -204,7 +216,10 @@ async function queryVectorStore(queryText, nResults = 5) {
 async function getVectorCount() {
   try {
     const client = getChromaClient();
-    const collection = await client.getOrCreateCollection({ name: COLLECTION_NAME });
+    const collection = await client.getOrCreateCollection({
+      name: COLLECTION_NAME,
+      embeddingFunction: customEmbeddingFunction,
+    });
     return await collection.count();
   } catch {
     return localStore.count();
