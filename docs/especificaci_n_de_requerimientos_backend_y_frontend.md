@@ -160,7 +160,7 @@ Utiliza esta lista de verificación antes de cada revisión semanal y de la entr
 
 * [x] Carpeta en Google Drive contiene variedad de formatos: al menos **1 PDF**, **1 Google Doc** y **1 Google Sheet**.
 
-* [ ] Carpeta de Drive compartida con el correo de la Cuenta de Servicio de Google Cloud Console (rol Lector).
+* [x] Carpeta de Drive compartida con el correo de la Cuenta de Servicio de Google Cloud Console (rol Lector).
 
 ### Fase 2: Base de Datos e Ingesta Vectorial (10 pts)
 

@@ -58,8 +58,9 @@ function getDriveClient() {
     );
   }
 
+  const credentials = JSON.parse(fs.readFileSync(cred.path, 'utf8'));
   const auth = new google.auth.GoogleAuth({
-    keyFile: cred.path,
+    credentials,
     scopes: ['https://www.googleapis.com/auth/drive.readonly'],
   });
 

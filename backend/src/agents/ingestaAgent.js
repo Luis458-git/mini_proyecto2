@@ -5,7 +5,7 @@ const mammoth = require('mammoth');
 const xlsx = require('xlsx');
 
 const { hasValidCredentials, listDriveFiles, downloadOrExportFile } = require('../config/googleDrive');
-const { addDocuments, getVectorCount } = require('../config/vectorStore');
+const { addDocuments, getVectorCount, localStore } = require('../config/vectorStore');
 const { pool } = require('../config/db');
 
 // Directorios de respaldo donde residen los 10 documentos del proyecto
@@ -225,7 +225,8 @@ async function loadDriveDocuments() {
 
   for (let i = 1; i <= 10; i++) {
     const meta = METADATA_MAP[i];
-    const match = driveFiles.find((df) => df.name && df.name.toLowerCase().includes(`documento ${i}`));
+    const regex = new RegExp(`\\bdocumento\\s*${i}\\b`, 'i');
+    const match = driveFiles.find((df) => df.name && regex.test(df.name));
     if (!match) continue;
 
     const downloaded = await downloadOrExportFile(match);
@@ -312,6 +313,7 @@ async function ejecutarIngesta(options = {}) {
   console.log(`📄 Se leyeron ${loadedDocs.length} documentos de políticas (formato PDF, Docs y Sheets).`);
 
   // 2. Fragmentación y Vectorización
+  localStore.reset();
   let totalChunksIngestados = 0;
   const resumenPorDocumento = [];
 
