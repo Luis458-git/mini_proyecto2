@@ -125,34 +125,34 @@ async function calcularMetricasDeterministas(fechaStr) {
 
   return {
     fecha: targetDate,
-    1_personas_ausentes: {
+    '1_personas_ausentes': {
       total: totalAusentes,
       desglose: ausenciasDetalle,
     },
-    2_solicitudes_pendientes: {
+    '2_solicitudes_pendientes': {
       total: totalPendientes,
       mas_de_3_dias: pendientesMas3Dias,
     },
-    3_incapacidades: {
+    '3_incapacidades': {
       activas: incapacidadesActivas,
       dias_acumulados_mes: diasIncapacidadMes,
     },
-    4_rotacion_personal: {
+    '4_rotacion_personal': {
       ingresos_mes: ingresosMes,
       salidas_mes: salidasMes,
       total_activos: totalActivos,
       tasa_rotacion_pct: tasaRotacion,
     },
-    5_pasivo_laboral_vacaciones: {
+    '5_pasivo_laboral_vacaciones': {
       total_colaboradores_alerta: totalColaboradoresPasivo,
       colaboradores_mas_20_dias: pasivoRows.slice(0, 5),
     },
-    6_chatbot_uso_dia_anterior: {
+    '6_chatbot_uso_dia_anterior': {
       total_consultas: totalConsultasAyer,
       latencia_promedio_ms: latenciaPromedioAyer,
       porcentaje_resueltas: porcentajeResueltoAyer,
     },
-    7_top_temas_consultados: {
+    '7_top_temas_consultados': {
       temas: topTemas,
       preguntas_sin_resolver: preguntasEscaladas,
     },
