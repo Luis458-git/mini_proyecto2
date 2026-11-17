@@ -4,13 +4,13 @@
 
 **Empresa Ficticia:** TicoTech Solutions S.A. (Costa Rica)
 
-**Stack Tecnológico:** React + Vite (Frontend) | Node.js + Express + Sequelize (Backend) | MySQL 8+ & ChromaDB (Almacenamiento) | Gemini API & Google Drive API
+**Stack Tecnológico:** React + Vite (Frontend) | Node.js + Express + mysql2 (Backend) | MySQL 8+ & ChromaDB (Almacenamiento) | DeepSeek API & Google Drive API
 
 ## 1. Requerimientos del Backend (API, Agentes e Integraciones)
 
 ### 1.1. Gestión de Datos y Almacenamiento
 
-* **RF-BE-01 (Base de Datos Relacional):** El backend debe conectarse a MySQL (`rrhh_ticotech`) mediante pool de conexiones/Sequelize, gestionando las entidades de colaboradores, saldos de vacaciones, solicitudes, incapacidades, movimientos de personal, logs de chat y reportes diarios.
+* **RF-BE-01 (Base de Datos Relacional):** El backend debe conectarse a MySQL (`rrhh_ticotech`) mediante pool de conexiones nativo (`mysql2/promise`), gestionando las entidades de colaboradores, saldos de vacaciones, solicitudes, incapacidades, movimientos de personal, logs de chat y reportes diarios.
 
 * **RF-BE-02 (Base Vectorial):** Debe mantener una instancia de ChromaDB sincronizada exclusivamente con los fragmentos (*chunks* de 500–1000 tokens con solapamiento) de los documentos de políticas provenientes de Google Drive.
 
