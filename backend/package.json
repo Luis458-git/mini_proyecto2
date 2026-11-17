@@ -5,8 +5,6 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "init-db": "node src/config/initDb.js",
-    "migrate": "node src/config/initDb.js",
     "test-db": "node src/config/db.js",
     "ingesta": "node src/agents/ingestaAgent.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,7 +12,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Backend TicoTech HR Portal con mysql2 nativo, ChromaDB y DeepSeek",
+  "description": "Backend TicoTech HR Portal",
   "dependencies": {
     "@google/genai": "^3.4.0",
     "chromadb": "^3.5.0",

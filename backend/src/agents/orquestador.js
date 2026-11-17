@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { pool } = require('../config/db');
+const { runQuery } = require('../config/db');
 const { deepseek, DEFAULT_MODEL } = require('../config/deepseek');
 const { consultarPoliticas } = require('./politicasAgent');
 const { consultarDatos } = require('./datosAgent');
@@ -203,26 +203,21 @@ async function procesarMensaje(pregunta, usuario, sesionId = 'default_session') 
 
   const latenciaMs = Date.now() - inicioMs;
 
-  // 3. Registrar auditoría en MySQL (tabla consultas_chat)
+  // 3. Registrar auditoría usando database/consultas.sql
   let consultaId = null;
   try {
-    const [insertResult] = await pool.query(
-      `INSERT INTO consultas_chat
-       (colaborador_id, sesion_id, pregunta, intencion, agente_utilizado, documentos_citados, confianza_rag, resuelta, escalada, latencia_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        usuario.id,
-        sesionId,
-        pregunta,
-        intencionDb,
-        agenteUtilizado,
-        fuentes.length > 0 ? JSON.stringify(fuentes) : null,
-        confianzaRag,
-        !escalable,
-        false,
-        latenciaMs,
-      ]
-    );
+    const [insertResult] = await runQuery('orquestador_registrar_consulta', [
+      usuario.id,
+      sesionId,
+      pregunta,
+      intencionDb,
+      agenteUtilizado,
+      fuentes.length > 0 ? JSON.stringify(fuentes) : null,
+      confianzaRag,
+      !escalable,
+      false,
+      latenciaMs,
+    ]);
     consultaId = insertResult.insertId;
   } catch (auditErr) {
     console.error('No se pudo registrar la auditoría en consultas_chat:', auditErr.message);

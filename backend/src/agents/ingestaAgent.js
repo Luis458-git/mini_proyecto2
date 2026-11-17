@@ -6,7 +6,7 @@ const xlsx = require('xlsx');
 
 const { hasValidCredentials, listDriveFiles, downloadOrExportFile } = require('../config/googleDrive');
 const { addDocuments, getVectorCount, localStore } = require('../config/vectorStore');
-const { pool } = require('../config/db');
+const { runQuery } = require('../config/db');
 
 // Directorios de respaldo donde residen los 10 documentos del proyecto
 const LOCAL_POLICIES_DIR = path.resolve(__dirname, '../../../docs/politicas');
@@ -265,12 +265,7 @@ async function loadDriveDocuments() {
  */
 async function syncMysqlMetadata(docMeta, totalChunks) {
   try {
-    await pool.query(
-      `UPDATE documentos_politicas 
-       SET total_chunks = ?, ultima_sincronizacion = NOW() 
-       WHERE drive_file_id = ?`,
-      [totalChunks, docMeta.drive_file_id]
-    );
+    await runQuery('ingesta_actualizar_documento', [totalChunks, docMeta.drive_file_id]);
   } catch (err) {
     // Si la BD relacional no está conectada o no existe la tabla, no interrumpe el pipeline vectorial
   }

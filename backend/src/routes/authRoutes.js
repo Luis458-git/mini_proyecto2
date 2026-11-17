@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/db');
+const { runQuery } = require('../config/db');
 const { authenticateUser } = require('../middleware/authMiddleware');
 
 /**
@@ -9,16 +9,8 @@ const { authenticateUser } = require('../middleware/authMiddleware');
  */
 router.get('/perfiles-demo', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT c.id, c.nombre, c.email, c.rol, d.nombre AS departamento, p.titulo AS puesto
-       FROM colaboradores c
-       LEFT JOIN departamentos d ON c.departamento_id = d.id
-       LEFT JOIN puestos p ON c.puesto_id = p.id
-       WHERE c.id IN (2, 3, 6, 9)
-       ORDER BY c.rol DESC, c.nombre ASC`
-    );
+    const [rows] = await runQuery('auth_perfiles_demo');
 
-    // Mapear con etiquetas claras para la UI
     const perfiles = rows.map((u) => ({
       ...u,
       etiqueta: u.rol === 'rrhh' ? `[RRHH] ${u.nombre}` : `[Colaborador] ${u.nombre}`,
@@ -38,25 +30,15 @@ router.post('/login', async (req, res) => {
   const { email, userId } = req.body;
 
   try {
-    let query = `
-      SELECT c.id, c.nombre, c.email, c.rol, c.departamento_id, d.nombre AS departamento, p.titulo AS puesto
-      FROM colaboradores c
-      LEFT JOIN departamentos d ON c.departamento_id = d.id
-      LEFT JOIN puestos p ON c.puesto_id = p.id
-    `;
-    let params = [];
-
+    let rows = [];
     if (userId) {
-      query += ' WHERE c.id = ?';
-      params.push(userId);
+      [rows] = await runQuery('auth_obtener_usuario_por_id', [userId]);
     } else if (email) {
-      query += ' WHERE c.email = ?';
-      params.push(email);
+      [rows] = await runQuery('auth_obtener_usuario_por_email', [email]);
     } else {
-      query += ' WHERE c.id = 3'; // Por defecto Andrés Monge (Colaborador)
+      [rows] = await runQuery('auth_obtener_usuario_por_id', [3]);
     }
 
-    const [rows] = await pool.query(query, params);
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas o usuario no encontrado.' });
     }

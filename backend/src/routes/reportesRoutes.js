@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/db');
+const { runQuery } = require('../config/db');
 const { authenticateUser, requireRRHH } = require('../middleware/authMiddleware');
 const { generarReporteDiario } = require('../agents/analistaAgent');
 
@@ -10,15 +10,9 @@ const { generarReporteDiario } = require('../agents/analistaAgent');
  */
 router.get('/ultimo', authenticateUser, requireRRHH, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT id, fecha, datos_json, resumen_texto, generado_por, creado_en
-       FROM reportes_diarios
-       ORDER BY fecha DESC, id DESC
-       LIMIT 1`
-    );
+    const [rows] = await runQuery('reportes_obtener_ultimo');
 
     if (rows.length === 0) {
-      // Si no existe, generarlo automáticamente para hoy
       const nuevo = await generarReporteDiario();
       return res.json({ reporte: nuevo });
     }
@@ -47,31 +41,9 @@ router.get('/ultimo', authenticateUser, requireRRHH, async (req, res) => {
  */
 router.get('/historial', authenticateUser, requireRRHH, async (req, res) => {
   try {
-    const [reportes] = await pool.query(
-      `SELECT id, fecha, resumen_texto, generado_por, creado_en
-       FROM reportes_diarios
-       ORDER BY fecha DESC
-       LIMIT 30`
-    );
-
-    // Métricas para gráfico de tendencia de 30 días (consultas del chatbot por día)
-    const [tendenciaRows] = await pool.query(
-      `SELECT DATE(fecha) AS fecha_dia, COUNT(*) AS total_consultas,
-              SUM(CASE WHEN escalada = TRUE THEN 1 ELSE 0 END) AS escaladas,
-              ROUND(AVG(latencia_ms), 0) AS latencia_promedio
-       FROM consultas_chat
-       WHERE fecha >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)
-       GROUP BY DATE(fecha)
-       ORDER BY fecha_dia ASC`
-    );
-
-    // Métricas por departamento para gráfico categórico de barras/dona
-    const [departamentosRows] = await pool.query(
-      `SELECT d.nombre AS departamento, COUNT(c.id) AS total_colaboradores
-       FROM departamentos d
-       LEFT JOIN colaboradores c ON d.id = c.departamento_id
-       GROUP BY d.id, d.nombre`
-    );
+    const [reportes] = await runQuery('reportes_obtener_historial');
+    const [tendenciaRows] = await runQuery('reportes_tendencia_30d');
+    const [departamentosRows] = await runQuery('reportes_colaboradores_por_departamento');
 
     res.json({
       reportes,

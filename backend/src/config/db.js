@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 
@@ -24,17 +25,55 @@ const pool = mysql.createPool({
 });
 
 /**
- * Verifica conectividad contra MySQL y devuelve la base de datos activa.
- * @returns {Promise<{ok: number, db: string}>}
+ * Carga y parsea las consultas desde database/consultas.sql
+ */
+const SQL_FILE_PATH = path.resolve(__dirname, '../../../database/consultas.sql');
+let queriesCache = null;
+
+function loadQueries() {
+  if (queriesCache) return queriesCache;
+
+  const content = fs.readFileSync(SQL_FILE_PATH, 'utf8');
+  const map = {};
+  const blocks = content.split(/--\s*@name:\s*/i);
+
+  for (let i = 1; i < blocks.length; i++) {
+    const lines = blocks[i].split(/\r?\n/);
+    const name = lines[0].trim();
+    const sql = lines
+      .slice(1)
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n')
+      .trim();
+    if (name && sql) {
+      map[name] = sql;
+    }
+  }
+
+  queriesCache = map;
+  return map;
+}
+
+/**
+ * Ejecuta una consulta por su nombre definido en database/consultas.sql
+ * @param {string} queryName - Nombre de la consulta en database/consultas.sql
+ * @param {Array} params - Parámetros para la consulta preparada
+ */
+async function runQuery(queryName, params = []) {
+  const queries = loadQueries();
+  const sql = queries[queryName];
+  if (!sql) {
+    throw new Error(`Consulta "${queryName}" no encontrada en database/consultas.sql`);
+  }
+  return pool.query(sql, params);
+}
+
+/**
+ * Verifica conectividad contra MySQL.
  */
 async function testConnection() {
-  const connection = await pool.getConnection();
-  try {
-    const [rows] = await connection.query('SELECT 1 AS ok, DATABASE() AS db');
-    return rows[0];
-  } finally {
-    connection.release();
-  }
+  const [rows] = await runQuery('health_check');
+  return rows[0];
 }
 
 if (require.main === module) {
@@ -52,5 +91,6 @@ if (require.main === module) {
 
 module.exports = {
   pool,
+  runQuery,
   testConnection,
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/db');
+const { runQuery } = require('../config/db');
 const { authenticateUser } = require('../middleware/authMiddleware');
 const { procesarMensaje } = require('../agents/orquestador');
 
@@ -33,16 +33,7 @@ router.post('/', authenticateUser, async (req, res) => {
  */
 router.get('/historial', authenticateUser, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT id, sesion_id, pregunta, intencion, agente_utilizado, documentos_citados,
-              confianza_rag, resuelta, escalada, latencia_ms, fecha
-       FROM consultas_chat
-       WHERE colaborador_id = ?
-       ORDER BY fecha DESC
-       LIMIT 30`,
-      [req.user.id]
-    );
-
+    const [rows] = await runQuery('chat_historial_usuario', [req.user.id]);
     res.json({ historial: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -57,28 +48,21 @@ router.post('/escalar', authenticateUser, async (req, res) => {
   const { consultaId, asunto, motivo } = req.body;
 
   try {
-    const [insertResult] = await pool.query(
-      `INSERT INTO tickets_escalamiento (consulta_id, colaborador_id, asunto, prioridad, estado, respuesta_rrhh)
-       VALUES (?, ?, ?, 'media', 'abierto', NULL)`,
-      [
-        consultaId || null,
-        req.user.id,
-        asunto || motivo || 'Duda sobre política no encontrada en documentos oficiales',
-      ]
-    );
+    const [insertResult] = await runQuery('chat_crear_ticket_escalamiento', [
+      consultaId || null,
+      req.user.id,
+      asunto || motivo || 'Duda sobre política no encontrada en documentos oficiales',
+    ]);
 
-    // Marcar en consultas_chat que fue escalada
     if (consultaId) {
-      await pool.query(
-        `UPDATE consultas_chat SET escalada = TRUE, resuelta = FALSE WHERE id = ?`,
-        [consultaId]
-      );
+      await runQuery('chat_marcar_consulta_escalada', [consultaId]);
     }
 
     res.json({
       ok: true,
       ticket_id: insertResult.insertId,
-      mensaje: 'Ticket de escalamiento a Recursos Humanos creado exitosamente. Un especialista revisará tu duda a la brevedad.',
+      mensaje:
+        'Ticket de escalamiento a Recursos Humanos creado exitosamente. Un especialista revisará tu duda a la brevedad.',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
