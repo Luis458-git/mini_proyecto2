@@ -64,7 +64,29 @@ async function clasificarIntencion(pregunta, usuario) {
     };
   }
 
-  // 2. Clasificación mediante DeepSeek
+  // 2. Consultas sobre Google Drive o listado de documentos disponibles
+  const pregLower = pregunta.toLowerCase();
+  if (
+    pregLower.includes('drive') ||
+    pregLower.includes('que documentos') ||
+    pregLower.includes('qué documentos') ||
+    pregLower.includes('cuales documentos') ||
+    pregLower.includes('cuáles documentos') ||
+    pregLower.includes('que politicas') ||
+    pregLower.includes('qué políticas') ||
+    pregLower.includes('lista de politicas') ||
+    pregLower.includes('archivos')
+  ) {
+    return {
+      intencion: 'POLITICA',
+      justificacion: 'Consulta sobre el catálogo de documentos y políticas en Google Drive.',
+      requiere_politicas: true,
+      requiere_datos: false,
+      mensaje_bloqueo: null,
+    };
+  }
+
+  // 3. Clasificación mediante DeepSeek
   const promptTemplate = getOrquestadorPrompt();
   const systemPrompt = promptTemplate
     .replace('{{usuario_id}}', String(usuario.id))

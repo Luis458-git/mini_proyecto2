@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { queryVectorStore } = require('../config/vectorStore');
+const { queryVectorStore, localStore } = require('../config/vectorStore');
 const { deepseek, DEFAULT_MODEL } = require('../config/deepseek');
 
 const PROMPT_PATH = path.resolve(__dirname, '../prompts/agentePoliticas.txt');
@@ -18,11 +18,55 @@ function getSystemPrompt() {
 /**
  * Ejecuta la consulta de políticas en la base vectorial y genera una respuesta fundamentada con citas.
  * @param {string} pregunta - Pregunta en lenguaje natural
- * @param {object} opciones - { nResults = 4, threshold = 0.65 }
+ * @param {object} opciones - { nResults = 4, threshold = 0.35 }
  * @returns {Promise<{ respuesta: string, fuentes: Array, escalable: boolean, maxScore: number }>}
  */
 async function consultarPoliticas(pregunta, opciones = {}) {
   const { nResults = 4, threshold = 0.35 } = opciones;
+  const pregLower = pregunta.toLowerCase();
+
+  // Caso especial: El usuario pide consultar qué documentos/archivos hay en Google Drive
+  if (
+    pregLower.includes('lo que hay en el drive') ||
+    pregLower.includes('que hay en el drive') ||
+    pregLower.includes('qué hay en el drive') ||
+    pregLower.includes('que documentos hay') ||
+    pregLower.includes('qué documentos hay') ||
+    pregLower.includes('cuales documentos') ||
+    pregLower.includes('cuáles documentos') ||
+    pregLower.includes('lista de politicas') ||
+    pregLower.includes('documentos en drive') ||
+    pregLower.includes('archivos en drive')
+  ) {
+    localStore.load();
+    const docsUnicos = new Map();
+    for (const rec of localStore.records) {
+      const m = rec.metadata || {};
+      if (m.titulo && !docsUnicos.has(m.titulo)) {
+        docsUnicos.set(m.titulo, {
+          titulo: m.titulo,
+          seccion: 'Catálogo Oficial',
+          version: m.version || '1.0',
+          url_drive: m.url_drive || 'https://drive.google.com/',
+          fecha_vigencia: m.fecha_vigencia || '2026',
+        });
+      }
+    }
+    const listaFuentes = Array.from(docsUnicos.values());
+    const listadoTexto = listaFuentes
+      .map((f, idx) => `${idx + 1}. **${f.titulo}** (Versión ${f.version})`)
+      .join('\n');
+
+    return {
+      respuesta:
+        `📂 **Documentos Oficiales Sincronizados desde Google Drive (${listaFuentes.length} documentos, ${localStore.records.length} fragmentos vectorizados en ChromaDB):**\n\n` +
+        `${listadoTexto}\n\n` +
+        `Puedes hacer clic en cualquiera de las tarjetas de abajo para abrir el archivo original en Google Drive, o preguntarme sobre cualquier tema contenido en ellos.`,
+      fuentes: listaFuentes,
+      escalable: false,
+      maxScore: 1.0,
+    };
+  }
 
   // 1. Consultar base vectorial (ChromaDB / VectorStore local)
   const queryResult = await queryVectorStore(pregunta, nResults);
@@ -101,7 +145,6 @@ async function consultarPoliticas(pregunta, opciones = {}) {
 
     let respuesta = completion.choices[0]?.message?.content?.trim() || '';
 
-    // Asegurar citas explícitas si el LLM no incluyó markdown link
     const escalable =
       respuesta.toLowerCase().includes('no se encuentra') ||
       respuesta.toLowerCase().includes('ticket') ||
@@ -117,7 +160,6 @@ async function consultarPoliticas(pregunta, opciones = {}) {
   } catch (err) {
     console.error('Error al invocar DeepSeek en politicasAgent:', err.message);
 
-    // Respuesta de respaldo basada puramente en el primer fragmento
     const primerFuente = fuentes[0];
     return {
       respuesta:
