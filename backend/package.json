@@ -1,0 +1,23 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^3.4.0",
+    "chromadb": "^3.5.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "googleapis": "^190.0.0",
+    "mysql2": "^3.24.6",
+    "node-cron": "^4.6.0",
+    "pdf-parse": "^2.4.5"
+  }
+}
