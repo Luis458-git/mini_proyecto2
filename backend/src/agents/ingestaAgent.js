@@ -19,6 +19,7 @@ const METADATA_MAP = {
   1: {
     titulo: 'Documento 1 - Política de Vacaciones y Calendario de Feriados Oficiales',
     version: '2.1',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_01_vacaciones_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_01_vacaciones_2026/view',
     tipo: 'pdf',
@@ -26,6 +27,7 @@ const METADATA_MAP = {
   2: {
     titulo: 'Documento 2 - Política de Permisos y Licencias Especiales',
     version: '1.4',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_02_permisos_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_02_permisos_2026/view',
     tipo: 'doc',
@@ -33,6 +35,7 @@ const METADATA_MAP = {
   3: {
     titulo: 'Documento 3 - Protocolo de Gestión de Incapacidades CCSS e INS',
     version: '2.0',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_03_incapacidades_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_03_incapacidades_2026/view',
     tipo: 'doc',
@@ -40,6 +43,7 @@ const METADATA_MAP = {
   4: {
     titulo: 'Documento 4 - Reglamento de Jornada Laboral, Asistencia y Teletrabajo',
     version: '3.0',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_04_teletrabajo_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_04_teletrabajo_2026/view',
     tipo: 'doc',
@@ -47,6 +51,7 @@ const METADATA_MAP = {
   5: {
     titulo: 'Documento 5 - Política de Remuneración, Planilla y Aguinaldo',
     version: '1.5',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_05_remuneracion_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_05_remuneracion_2026/view',
     tipo: 'sheet',
@@ -54,6 +59,7 @@ const METADATA_MAP = {
   6: {
     titulo: 'Documento 6 - Guía de Beneficios Corporativos y Asociación Solidarista',
     version: '2.2',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_06_beneficios_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_06_beneficios_2026/view',
     tipo: 'doc',
@@ -61,6 +67,7 @@ const METADATA_MAP = {
   7: {
     titulo: 'Documento 7 - Manual de Onboarding, Periodo de Prueba y Salida',
     version: '1.3',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_07_onboarding_salida_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_07_onboarding_salida_2026/view',
     tipo: 'doc',
@@ -68,6 +75,7 @@ const METADATA_MAP = {
   8: {
     titulo: 'Documento 8 - Modelo de Evaluación de Desempeño y Plan de Mejora (PIP)',
     version: '1.8',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_08_desempeno_pip_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_08_desempeno_pip_2026/view',
     tipo: 'doc',
@@ -75,6 +83,7 @@ const METADATA_MAP = {
   9: {
     titulo: 'Documento 9 - Código de Conducta y Prevención del Hostigamiento (Ley 7476)',
     version: '2.4',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_09_conducta_acoso_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_09_conducta_acoso_2026/view',
     tipo: 'doc',
@@ -82,6 +91,7 @@ const METADATA_MAP = {
   10: {
     titulo: 'Documento 10 - Política de Protección de Datos Personales (Ley 8968)',
     version: '2.0',
+    fecha_vigencia: '2026-01-01',
     drive_file_id: '1drv_tt_pol_10_privacidad_datos_2026',
     url_drive: 'https://drive.google.com/file/d/1drv_tt_pol_10_privacidad_datos_2026/view',
     tipo: 'doc',
@@ -161,14 +171,16 @@ function chunkDocumentText(fullText, docMeta) {
     });
   }
 
-  // Mapear con los metadatos requeridos: titulo, seccion, version, url_drive
+  // Mapear con los metadatos requeridos: titulo, seccion, version, url_drive, fecha_vigencia
   return chunks.map((c, idx) => ({
     id: `${docMeta.drive_file_id}_chunk_${String(idx + 1).padStart(3, '0')}`,
     document: `[${docMeta.titulo} | Sección: ${c.seccion}]\n${c.texto}`,
     metadata: {
       titulo: docMeta.titulo,
+      titulo_documento: docMeta.titulo,
       seccion: c.seccion,
       version: docMeta.version,
+      fecha_vigencia: docMeta.fecha_vigencia || '2026-01-01',
       url_drive: docMeta.url_drive,
       drive_file_id: docMeta.drive_file_id,
       chunk_index: idx + 1,

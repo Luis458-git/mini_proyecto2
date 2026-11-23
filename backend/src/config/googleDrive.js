@@ -119,10 +119,39 @@ async function downloadOrExportFile(file) {
   return { type: 'binary', buffer: Buffer.from(res.data) };
 }
 
+/**
+ * Obtiene el token inicial para la detección de cambios incrementales con changes.list (RF-BE-06).
+ */
+async function getStartPageToken() {
+  const drive = getDriveClient();
+  const res = await drive.changes.getStartPageToken();
+  return res.data.startPageToken;
+}
+
+/**
+ * Consulta la lista de cambios de Google Drive mediante changes.list.
+ * Detecta archivos nuevos, modificados o borrados (trashed = true).
+ * @param {string|null} savedToken 
+ */
+async function listDriveChanges(savedToken = null) {
+  const drive = getDriveClient();
+  const pageToken = savedToken || (await getStartPageToken());
+  const res = await drive.changes.list({
+    pageToken,
+    fields: 'changes(fileId, removed, file(id, name, mimeType, trashed, webViewLink, modifiedTime, version)), newStartPageToken, nextPageToken',
+  });
+  return {
+    changes: res.data.changes || [],
+    newStartPageToken: res.data.newStartPageToken || null,
+  };
+}
+
 module.exports = {
   getCredentialsPath,
   hasValidCredentials,
   getDriveClient,
   listDriveFiles,
   downloadOrExportFile,
+  getStartPageToken,
+  listDriveChanges,
 };

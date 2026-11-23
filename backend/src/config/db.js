@@ -65,7 +65,7 @@ async function runQuery(queryName, params = []) {
   if (!sql) {
     throw new Error(`Consulta "${queryName}" no encontrada en database/consultas.sql`);
   }
-  return pool.query(sql, params);
+  return pool.execute(sql, params);
 }
 
 /**

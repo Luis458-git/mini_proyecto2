@@ -18,30 +18,53 @@ function getOrquestadorPrompt() {
  * Detecta patrones directos de violación de privacidad de terceros bajo Ley 8968.
  */
 function verificarPrivacidadTerceros(pregunta, usuario) {
-  const p = pregunta.toLowerCase();
-  const usuarioNombre = (usuario.nombre || '').toLowerCase();
+  const pNorm = (pregunta || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const usuarioNombre = ((usuario && usuario.nombre) || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  // Patrones de consulta sobre terceros
+  // 1. Detectar si la pregunta es estrictamente en primera persona sobre datos propios
+  const tieneMarcadoresPropios = /\b(me quedan|me corresponden|me corresponde|tengo yo|tengo|mi saldo|mi salario|mi sueldo|mis vacaciones|mis dias|mi colilla|mi expediente|mi incapacidad|cuanto gano|gano yo|puedo pasarlos|puedo pasar mis vacaciones)\b/.test(pNorm);
+  const tieneMencionTercero = /\b(companero|companera|colega|jefe|jefa|gerente|director|directora|supervisor|supervisora|otro|otra|tercero|carlos|ana|maria|juan|pedro|luis|sofia)\b/.test(pNorm);
+
+  if (tieneMarcadoresPropios && !tieneMencionTercero) {
+    return false;
+  }
+
+  // 2. Si es una consulta institucional sobre políticas generales sin mencionar terceras personas
+  if ((pNorm.includes('politica') || pNorm.includes('reglamento') || pNorm.includes('calendario') || pNorm.includes('feriado') || pNorm.includes('aguinaldo')) && !tieneMencionTercero) {
+    return false;
+  }
+
+  // 3. Patrones de violación de privacidad de terceros bajo Ley 8968
+  const personasKeywords = '(?:companero|companera|colega|jefe|jefa|gerente|director|directora|supervisor|supervisora|empleado|empleada|colaborador|colaboradora|otro|otra|alguien|carlos|ana|maria|juan|pedro|luis|sofia)';
+
   const patronesTerceros = [
-    /salario\s+de\s+(?!mi\b|mis\b)/i,
-    /cuanto\s+gana\s+(?!yo\b)/i,
-    /sueldo\s+de\s+(?!mi\b)/i,
-    /vacaciones\s+de\s+(?!mi\b|mis\b)/i,
-    /dias\s+de\s+(?!mi\b|mis\b)(?:compañero|colega|jefe|gerente|[a-z]+)/i,
-    /evaluacion\s+de\s+(?!mi\b)/i,
-    /incapacidad\s+de\s+(?!mi\b)/i,
-    /expediente\s+de\s+(?!mi\b)/i,
+    // Salario o sueldo de terceros
+    new RegExp(`(?:salario|sueldo|pago|ingreso)\\s+(?:de|del|de la)?\\s*(?:mi\\s+)?${personasKeywords}`, 'i'),
+    // Vacaciones o ausencias de terceros
+    new RegExp(`(?:vacaciones|dias de vacaciones|dias libres)\\s+(?:de|del|de la)\\s*(?:mi\\s+)?${personasKeywords}`, 'i'),
+    // Cuántos días tiene o le quedan a un tercero
+    new RegExp(`(?:cuantos dias|cuantas vacaciones)\\s+(?:tiene|le quedan|le corresponden)\\s+(?:a|el|la|mi)?\\s*${personasKeywords}`, 'i'),
+    // Cuánto gana alguien que no sea yo
+    /cuanto\s+gana\s+(?!yo\b|yo$)/i,
+    // Expediente, evaluación o amonestación de terceros
+    new RegExp(`(?:evaluacion|expediente|incapacidad|amonestacion)\\s+(?:de|del|de la)\\s*(?:mi\\s+)?${personasKeywords}`, 'i'),
   ];
 
-  // Si incluye nombres de compañeros o roles de terceros específicos
-  const contieneTercero =
-    patronesTerceros.some((regex) => regex.test(p)) ||
-    (p.includes('de mi compañero') || p.includes('de otro') || p.includes('del gerente general') || p.includes('de carlos') || p.includes('de ana') || p.includes('de maria') || p.includes('de juan'));
+  // Frases directas sobre terceros
+  const frasesTerceros = [
+    'de mi companero', 'de mi companera', 'de mi colega', 'de otro', 'de otra',
+    'del gerente general', 'del gerente', 'de la gerente', 'del director', 'del supervisor',
+    'del jefe', 'de la jefa', 'de carlos', 'de ana', 'de maria', 'de juan', 'de pedro',
+    'companero juan', 'companera ana'
+  ];
 
-  // Asegurarse de que no sea una auto-consulta donde el usuario dice su propio nombre
-  if (contieneTercero && !p.includes(usuarioNombre)) {
+  const coincideFrase = frasesTerceros.some((f) => pNorm.includes(f));
+  const coincideRegex = patronesTerceros.some((regex) => regex.test(pNorm));
+
+  if ((coincideFrase || coincideRegex) && (!usuarioNombre || !pNorm.includes(usuarioNombre))) {
     return true;
   }
+
   return false;
 }
 
@@ -113,10 +136,22 @@ async function clasificarIntencion(pregunta, usuario) {
   } catch (err) {
     console.error('Fallo clasificación con LLM en orquestador, aplicando heurística:', err.message);
 
-    // Heurística de respaldo
+    // Heurística de respaldo determinista ante interrupciones de conectividad con LLM
     const p = pregunta.toLowerCase();
-    if (p.includes('cuantos dias me quedan') || p.includes('mi saldo') || p.includes('mi salario') || p.includes('mi deduccion')) {
-      if (p.includes('segun la politica') || p.includes('puedo pasarlos') || p.includes('como se calculan')) {
+    const esDatoPropio =
+      /\b(cuantos dias|cuantas vacaciones|saldo|vacaciones|dias|salario|sueldo|deduccion|colilla|incapacidad)\b/i.test(p) &&
+      /\b(me quedan|me corresponden|tengo|mi|mis|gano)\b/i.test(p);
+
+    if (esDatoPropio) {
+      if (
+        p.includes('politica') ||
+        p.includes('puedo pasarlos') ||
+        p.includes('pasar al') ||
+        p.includes('año siguiente') ||
+        p.includes('ano siguiente') ||
+        p.includes('como se calculan') ||
+        p.includes('segun')
+      ) {
         return { intencion: 'MIXTA', requiere_politicas: true, requiere_datos: true };
       }
       return { intencion: 'DATO_PERSONAL', requiere_politicas: false, requiere_datos: true };

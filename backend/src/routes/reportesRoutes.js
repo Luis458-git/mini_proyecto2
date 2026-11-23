@@ -45,8 +45,13 @@ router.get('/historial', authenticateUser, requireRRHH, async (req, res) => {
     const [tendenciaRows] = await runQuery('reportes_tendencia_30d');
     const [departamentosRows] = await runQuery('reportes_colaboradores_por_departamento');
 
+    const reportesConMetricas = reportes.map((r) => ({
+      ...r,
+      metricas: typeof r.datos_json === 'string' ? JSON.parse(r.datos_json) : r.datos_json,
+    }));
+
     res.json({
-      reportes,
+      reportes: reportesConMetricas,
       grafico_tendencia_30d: tendenciaRows,
       grafico_departamentos: departamentosRows,
     });

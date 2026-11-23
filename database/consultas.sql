@@ -227,7 +227,7 @@ ORDER BY fecha DESC, id DESC
 LIMIT 1;
 
 -- @name: reportes_obtener_historial
-SELECT id, fecha, resumen_texto, generado_por, creado_en
+SELECT id, fecha, datos_json, resumen_texto, generado_por, creado_en
 FROM reportes_diarios
 ORDER BY fecha DESC
 LIMIT 30;
@@ -267,3 +267,17 @@ JOIN colaboradores c ON s.colaborador_id = c.id
 LEFT JOIN departamentos d ON c.departamento_id = d.id
 WHERE s.estado = 'pendiente'
 ORDER BY dias_en_espera DESC, s.creada_en ASC;
+
+-- @name: solicitudes_resolver_estado
+UPDATE solicitudes
+SET estado = ?, aprobador_id = ?, fecha_resolucion = NOW()
+WHERE id = ?;
+
+-- @name: solicitudes_crear_colaborador
+INSERT INTO solicitudes (colaborador_id, tipo, fecha_inicio, fecha_fin, dias_solicitados, motivo, estado, creada_en)
+VALUES (?, ?, ?, ?, ?, ?, 'pendiente', NOW());
+
+-- @name: documentos_listar_catalogo
+SELECT id, drive_file_id, titulo, version, fecha_vigencia, responsable, url_drive, ultima_sincronizacion, total_chunks
+FROM documentos_politicas
+ORDER BY id ASC;

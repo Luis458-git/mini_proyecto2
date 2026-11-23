@@ -88,7 +88,10 @@ async function calcularMetricasDeterministas(fechaStr) {
     },
     '7_top_temas_consultados': {
       temas: topTemas,
-      preguntas_sin_resolver: preguntasEscaladas,
+    },
+    '8_preguntas_sin_respuesta': {
+      total: preguntasEscaladas.length,
+      detalle: preguntasEscaladas,
     },
   };
 }

@@ -18,6 +18,44 @@ export default function App() {
   const [pestanaActiva, setPestanaActiva] = useState('chat');
   const [modalLoginAbierto, setModalLoginAbierto] = useState(false);
 
+  // Inicializar token criptográfico y token anti-CSRF para el usuario por defecto al arrancar
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // 1. Obtener token anti-CSRF y cookie segura
+        try {
+          const resCsrf = await fetch('/api/csrf-token');
+          const dataCsrf = await resCsrf.json();
+          if (dataCsrf?.csrfToken) {
+            sessionStorage.setItem('csrfToken', dataCsrf.csrfToken);
+          }
+        } catch (e) {
+          console.warn('Advertencia al precargar CSRF token:', e);
+        }
+
+        const csrfToken = sessionStorage.getItem('csrfToken');
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+          },
+          body: JSON.stringify({ userId: 3 }),
+        });
+        const data = await res.json();
+        if (data.ok && data.user) {
+          if (data.csrfToken) {
+            sessionStorage.setItem('csrfToken', data.csrfToken);
+          }
+          setUsuario({ ...data.user, token: data.token, csrfToken: data.csrfToken });
+        }
+      } catch (err) {
+        console.error('Error inicializando auth demo:', err);
+      }
+    };
+    initAuth();
+  }, []);
+
   // Protección de Rutas (RF-FE-02):
   // Si el usuario cambia a 'colaborador' y estaba en 'dashboard', se redirige forzosamente a 'chat'
   useEffect(() => {
@@ -28,14 +66,21 @@ export default function App() {
 
   const handleSelectUser = async (perfil) => {
     try {
+      const csrfToken = sessionStorage.getItem('csrfToken');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         body: JSON.stringify({ userId: perfil.id }),
       });
       const data = await res.json();
       if (data.ok && data.user) {
-        setUsuario(data.user);
+        if (data.csrfToken) {
+          sessionStorage.setItem('csrfToken', data.csrfToken);
+        }
+        setUsuario({ ...data.user, token: data.token, csrfToken: data.csrfToken });
         if (data.user.rol === 'rrhh') {
           setPestanaActiva('dashboard');
         } else {

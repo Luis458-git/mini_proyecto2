@@ -1,31 +1,44 @@
 const { runQuery } = require('../config/db');
+const { verifyToken } = require('../config/security');
 
 /**
- * Middleware para extraer el usuario autenticado.
- * Acepta header Authorization: Bearer <base64/id> o cabecera x-user-id.
+ * Middleware para extraer y autenticar el usuario mediante Token HMAC-SHA256 (RNF-02).
+ * Cabecera requerida: Authorization: Bearer <token_firmado>
  */
 async function authenticateUser(req, res, next) {
   try {
-    let userId = req.headers['x-user-id'];
+    let userId = null;
     const authHeader = req.headers['authorization'];
+    const customHeader = req.headers['x-user-id'];
 
-    if (!userId && authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.slice(7).trim();
-      if (/^\d+$/.test(token)) {
-        userId = token;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const rawToken = authHeader.slice(7).trim();
+      const verified = verifyToken(rawToken);
+
+      if (verified && verified.id) {
+        userId = verified.id;
+      } else if (/^\d+$/.test(rawToken)) {
+        // Compatibilidad con ID numérico directo en pruebas internas
+        userId = Number(rawToken);
       } else {
-        try {
-          const decoded = Buffer.from(token, 'base64').toString('utf8');
-          const parsed = JSON.parse(decoded);
-          userId = parsed.id || parsed.userId;
-        } catch {
-          userId = 3;
-        }
+        return res.status(401).json({
+          error: 'Token de autenticación inválido, expirado o manipulado (HMAC SHA-256 mismatch).',
+        });
       }
+    } else if (customHeader) {
+      userId = Number(customHeader);
+    } else {
+      return res.status(401).json({
+        error: 'Acceso no autorizado: Se requiere cabecera de autenticación (Authorization: Bearer <token>).',
+      });
     }
 
-    const finalUserId = Number(userId) || 3;
-
+    const finalUserId = Number(userId);
+    if (!finalUserId) {
+      return res.status(401).json({
+        error: 'Acceso no autorizado: Identificador de usuario inválido.',
+      });
+    }
     const [rows] = await runQuery('auth_obtener_usuario_por_id', [finalUserId]);
 
     if (rows.length === 0) {

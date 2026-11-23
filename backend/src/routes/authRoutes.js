@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { runQuery } = require('../config/db');
 const { authenticateUser } = require('../middleware/authMiddleware');
+const { generateToken } = require('../config/security');
+const { generateCsrfToken, CSRF_COOKIE_OPTIONS } = require('../middleware/csrfMiddleware');
 
 /**
  * GET /api/auth/perfiles-demo
@@ -14,7 +16,7 @@ router.get('/perfiles-demo', async (req, res) => {
     const perfiles = rows.map((u) => ({
       ...u,
       etiqueta: u.rol === 'rrhh' ? `[RRHH] ${u.nombre}` : `[Colaborador] ${u.nombre}`,
-      token: Buffer.from(JSON.stringify({ id: u.id, rol: u.rol })).toString('base64'),
+      token: generateToken({ id: u.id, rol: u.rol, email: u.email }),
     }));
 
     res.json({ perfiles });
@@ -44,12 +46,15 @@ router.post('/login', async (req, res) => {
     }
 
     const user = rows[0];
-    const token = Buffer.from(JSON.stringify({ id: user.id, rol: user.rol })).toString('base64');
+    const token = generateToken({ id: user.id, rol: user.rol, email: user.email });
+    const csrfToken = generateCsrfToken();
+    res.cookie('csrf_token', csrfToken, CSRF_COOKIE_OPTIONS);
 
     res.json({
       ok: true,
       user,
       token,
+      csrfToken,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
